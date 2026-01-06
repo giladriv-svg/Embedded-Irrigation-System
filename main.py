@@ -2,45 +2,59 @@ from machine import Pin, ADC
 import time
 
 # --- Hardware Configuration ---
-# Moisture Sensor (Connected to Pin 4)
-sensor_pin = ADC(Pin(4))
-sensor_pin.atten(ADC.ATTN_11DB)  # Full range 0-3.3V
+# Power pin for the sensor (New Feature: Corrosion Protection)
+sensor_power = Pin(5, Pin.OUT)
 
-# Pump Relay (Connected to Pin 2)
-# 1 = ON, 0 = OFF
+# Moisture Sensor
+sensor_pin = ADC(Pin(4))
+sensor_pin.atten(ADC.ATTN_11DB)
+
 pump_relay = Pin(2, Pin.OUT)
 
 # --- Calibration Thresholds ---
-DRY_THRESHOLD = 3000  # Above this -> Soil is dry
-WET_THRESHOLD = 2000  # Below this -> Soil is wet
+DRY_THRESHOLD = 3000
+WET_THRESHOLD = 2000
 
 def pump_on():
-    print("Soil is DRY -> Pump ON")
-    pump_relay.value(1)
+    if pump_relay.value() == 0: # Check if not already on
+        print("Soil is DRY -> Pump ON")
+        pump_relay.value(1)
 
 def pump_off():
-    print("Soil is WET -> Pump OFF")
-    pump_relay.value(0)
+    if pump_relay.value() == 1: # Check if not already off
+        print("Soil is WET -> Pump OFF")
+        pump_relay.value(0)
 
-# Ensure pump is off on startup
-pump_off()
-print("Automatic Watering System STARTED")
-
-while True:
-    # Average 10 readings to reduce noise
+def get_moisture_level():
+    """
+    Turns on sensor, takes average readings, turns off sensor.
+    Prevents corrosion by not powering the sensor 24/7.
+    """
+    sensor_power.value(1)       # Power ON
+    time.sleep(0.1)             # Wait for stability
+    
     readings = []
     for _ in range(10):
         readings.append(sensor_pin.read())
-        time.sleep(0.05)
+        time.sleep(0.01)
+        
+    sensor_power.value(0)       # Power OFF (Protection)
     
-    current_moisture = sum(readings) / len(readings)
-    print(f"Current Moisture: {int(current_moisture)}")
+    average = sum(readings) / len(readings)
+    return int(average)
 
-    # Watering Logic (Hysteresis)
+# --- Main Program ---
+pump_off()
+sensor_power.value(0) # Ensure sensor is off initially
+print("Automatic Watering System v2.0 STARTED")
+
+while True:
+    current_moisture = get_moisture_level()
+    print(f"Current Moisture: {current_moisture}")
+
     if current_moisture > DRY_THRESHOLD:
         pump_on()
     elif current_moisture < WET_THRESHOLD:
         pump_off()
     
-    time.sleep(1)
-    
+    time.sleep(2)
