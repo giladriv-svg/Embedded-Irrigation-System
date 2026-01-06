@@ -1,5 +1,3 @@
-# Embedded-Irrigation-System
-End-to-end embedded firmware implementation for a smart irrigation system using MicroPython on ESP32 with closed-loop control logic.
 # Smart Irrigation Control System (ESP32)
 
 An end-to-end embedded solution for automated plant care, implemented using MicroPython.
@@ -17,3 +15,31 @@ This project demonstrates a closed-loop control system running on an ESP32 micro
 * **MCU:** ESP32
 * **Language:** MicroPython
 * **Sensors:** Capacitive Soil Moisture Sensor
+
+## System Architecture
+
+```mermaid
+graph TD
+    %% Component Definitions
+    ESP32[ESP32 Controller]
+    Sensor[Capacitive Soil Sensor]
+    Transistor[NPN Transistor / BJT]
+    Relay[5V Relay Module]
+    Pump[Water Pump]
+    Power5V[5V Power Source]
+    
+    %% Sensor Connections (3.3V Logic)
+    ESP32 -- "3.3V / GPIO Power" --> Sensor
+    Sensor -- "Analog Data (ADC)" --> ESP32
+    
+    %% Pump Connections (5V Logic via Transistor)
+    ESP32 -- "GPIO Control (3.3V)" --> Transistor
+    Power5V -- "5V Supply" --> Relay
+    Transistor -- "Switch Signal" --> Relay
+    Relay -- "High Current Switch" --> Pump
+    Power5V -- "Power" --> Pump
+    
+    %% Styling - Added 'color:#000' for black text
+    style ESP32 fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style Sensor fill:#ccf,stroke:#333,color:#000
+    style Relay fill:#ff9,stroke:#333,color:#000
